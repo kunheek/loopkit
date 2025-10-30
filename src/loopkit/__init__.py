@@ -1,6 +1,6 @@
 import os
 
-__version__ = "0.1.3"
+__version__ = "0.0.1a1"
 
 # Import submodules to make them available
 from . import config, git, logger, monitor, tracking, utils
