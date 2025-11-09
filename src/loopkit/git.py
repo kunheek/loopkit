@@ -1,3 +1,4 @@
+import json
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -142,8 +143,14 @@ def save_git_info(
     git_info_file = run_dir / "git_info.txt"
     with open(git_info_file, "w") as f:
         f.write(f"SHA: {info['sha']}\n")
+        f.write(f"SHA short: {info['sha_short']}\n")
         f.write(f"Branch: {info['branch']}\n")
         f.write(f"Dirty: {info['dirty']}\n")
+
+    # Save git info as JSON for CLI tooling
+    git_info_json = run_dir / "git_info.json"
+    with open(git_info_json, "w") as f:
+        json.dump(info, f, indent=2)
 
     # Save diff if dirty
     if include_diff and info["dirty"]:

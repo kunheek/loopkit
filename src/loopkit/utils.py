@@ -1,15 +1,15 @@
 import os
 import random
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 
 
-def str2bool(v: str) -> bool:
+def str2bool(v: Union[str, bool]) -> bool:
     """Convert string to boolean.
 
     Args:
-        v: String value to convert
+        v: String or boolean value to convert
 
     Returns:
         Boolean value
@@ -25,14 +25,30 @@ def str2bool(v: str) -> bool:
         >>> str2bool("1")
         True
     """
-    v = v.strip().lower()
     if isinstance(v, bool):
         return v
+    if not isinstance(v, str):
+        raise ValueError(f"Boolean value expected, got type: {type(v).__name__}")
+
+    v = v.strip().lower()
     if v in ("yes", "true", "t", "y", "1"):
         return True
     if v in ("no", "false", "f", "n", "0"):
         return False
     raise ValueError(f"Boolean value expected, got: {v}")
+
+
+def _normalize_device_id(token: str) -> Optional[Union[int, str]]:
+    """Normalize a device identifier from env/user input."""
+
+    token = token.strip()
+    if not token:
+        return None
+
+    try:
+        return int(token)
+    except ValueError:
+        return token
 
 
 def set_seed(seed: int):
@@ -43,7 +59,7 @@ def set_seed(seed: int):
 
     # PyTorch if available
     try:
-        import torch
+        import torch  # type: ignore[import-not-found]
 
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
@@ -53,14 +69,19 @@ def set_seed(seed: int):
         pass
 
 
-def get_gpu_devices(requested: Optional[str] = None) -> List[int]:
-    """Get list of GPU device IDs, respecting CUDA_VISIBLE_DEVICES."""
+def get_gpu_devices(requested: Optional[str] = None) -> List[Union[int, str]]:
+    """Get GPU device identifiers, handling numeric IDs and MIG/UUID strings."""
+
     cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     if cuda_visible:
-        available = [int(x) for x in cuda_visible.split(",") if x.strip()]
+        available = []
+        for raw_id in cuda_visible.split(","):
+            normalized = _normalize_device_id(raw_id)
+            if normalized is not None:
+                available.append(normalized)
     else:
         try:
-            import torch
+            import torch  # type: ignore[import-not-found]
 
             available = list(range(torch.cuda.device_count()))
         except ImportError:
@@ -70,6 +91,10 @@ def get_gpu_devices(requested: Optional[str] = None) -> List[int]:
         # Parse requested, e.g., "0,1" or "all"
         if requested.lower() == "all":
             return available
-        req_ids = [int(x.strip()) for x in requested.split(",")]
+        req_ids = []
+        for raw_id in requested.split(","):
+            normalized = _normalize_device_id(raw_id)
+            if normalized is not None:
+                req_ids.append(normalized)
         return [d for d in req_ids if d in available]
     return available

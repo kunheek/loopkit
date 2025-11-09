@@ -7,6 +7,7 @@ except ImportError:
 
 if TORCH_AVAILABLE:
     from .checkpoint import CheckpointManager, load_checkpoint, save_checkpoint
+    from .engine import DistributedEngine, EngineState
     from .mp import (
         barrier,
         cleanup_ddp,
@@ -24,6 +25,8 @@ if TORCH_AVAILABLE:
 
     __all__ = [
         "CheckpointManager",
+        "DistributedEngine",
+        "EngineState",
         "barrier",
         "cleanup_ddp",
         "create_shared_run_dir",
